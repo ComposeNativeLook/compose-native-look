@@ -9,25 +9,15 @@ import com.mayakapps.compose.windowstyler.windows.jna.enums.DwmWindowAttribute
 import com.sun.jna.platform.win32.WinDef
 
 internal class WindowsBackdropApis(private val hwnd: WinDef.HWND) {
-    private var isSystemBackdropSet = false
-    private var isMicaEnabled = false
-    private var isAccentPolicySet = false
-    private var isSheetOfGlassApplied = false
-
     fun setSystemBackdrop(systemBackdrop: DwmSystemBackdrop) {
         createSheetOfGlassEffect()
-        if (Dwm.setSystemBackdrop(hwnd, systemBackdrop)) {
-            isSystemBackdropSet = systemBackdrop == DwmSystemBackdrop.DWMSBT_DISABLE
-            if (isSystemBackdropSet) resetAccentPolicy()
-        }
+        Dwm.setSystemBackdrop(hwnd, systemBackdrop)
     }
 
     fun setMicaEffectEnabled(enabled: Boolean) {
         createSheetOfGlassEffect()
-        if (Dwm.setWindowAttribute(hwnd, DwmWindowAttribute.DWMWA_MICA_EFFECT, enabled)) {
-            isMicaEnabled = enabled
-            if (isMicaEnabled) resetAccentPolicy()
-        }
+        Dwm.setWindowAttribute(hwnd, DwmWindowAttribute.DWMWA_MICA_EFFECT, enabled)
+        if (enabled) setAccentPolicy(AccentState.ACCENT_DISABLED)
     }
 
     fun setAccentPolicy(
@@ -37,30 +27,14 @@ internal class WindowsBackdropApis(private val hwnd: WinDef.HWND) {
         animationId: Int = 0,
     ) {
         if (User32.setAccentPolicy(hwnd, accentState, accentFlags, color, animationId)) {
-            isAccentPolicySet = accentState != AccentState.ACCENT_DISABLED
-            if (isAccentPolicySet) {
-                resetSystemBackdrop()
-                resetMicaEffectEnabled()
+            if (accentState != AccentState.ACCENT_DISABLED) {
                 resetWindowFrame()
             }
         }
     }
 
     fun createSheetOfGlassEffect() {
-        if (!isSheetOfGlassApplied && Dwm.extendFrameIntoClientArea(hwnd, -1)) isSheetOfGlassApplied = true
-    }
-
-
-    fun resetSystemBackdrop() {
-        if (isSystemBackdropSet) setSystemBackdrop(DwmSystemBackdrop.DWMSBT_DISABLE)
-    }
-
-    fun resetMicaEffectEnabled() {
-        if (isMicaEnabled) setMicaEffectEnabled(false)
-    }
-
-    fun resetAccentPolicy() {
-        if (isAccentPolicySet) setAccentPolicy(AccentState.ACCENT_DISABLED)
+        Dwm.extendFrameIntoClientArea(hwnd, -1)
     }
 
     fun resetWindowFrame() {
@@ -69,8 +43,6 @@ internal class WindowsBackdropApis(private val hwnd: WinDef.HWND) {
         //
         // Matching value with bitsdojo_window.
         // https://github.com/bitsdojo/bitsdojo_window/blob/adad0cd40be3d3e12df11d864f18a96a2d0fb4fb/bitsdojo_window_windows/windows/bitsdojo_window.cpp#L149
-        if (isSheetOfGlassApplied && Dwm.extendFrameIntoClientArea(hwnd, 0, 0, 1, 0)) {
-            isSheetOfGlassApplied = false
-        }
+        Dwm.extendFrameIntoClientArea(hwnd, 0, 0, 1, 0)
     }
 }
