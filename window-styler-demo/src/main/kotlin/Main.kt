@@ -1,3 +1,5 @@
+@file:OptIn(UnstableWindowBackdropApi::class)
+
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
@@ -22,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.application
 import com.mayakapps.compose.windowstyler.NativeLookWindow
+import com.mayakapps.compose.windowstyler.UnstableWindowBackdropApi
 import com.mayakapps.compose.windowstyler.WindowBackdrop
 
 @Composable
@@ -59,12 +63,21 @@ fun main() = application {
 
         MaterialTheme(colors = if (isDarkTheme) darkColors() else lightColors()) {
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colors.onBackground) {
-                App(
-                    isDarkTheme = isDarkTheme,
-                    onThemeChange = { isDarkTheme = it },
-                    backdropType = preferredBackdropType,
-                    onBackdropChange = { preferredBackdropType = it },
-                )
+                val app = @Composable {
+                    App(
+                        isDarkTheme = isDarkTheme,
+                        onThemeChange = { isDarkTheme = it },
+                        backdropType = preferredBackdropType,
+                        onBackdropChange = { preferredBackdropType = it },
+                    )
+                }
+                if (hasBackdropApplied) {
+                    app()
+                } else {
+                    Surface {
+                        app()
+                    }
+                }
             }
         }
     }
@@ -72,17 +85,9 @@ fun main() = application {
 
 val themeOptions = listOf(false to "Light", true to "Dark")
 
-val lightRed = Color(255, 128, 128)
-val darkRed = Color(169, 45, 45)
-
-val lightBlue = Color(128, 168, 255)
-val darkBlue = Color(45, 54, 169)
-
 val backdropOptions = listOf(
-    WindowBackdrop.Solid(lightRed, darkRed) to "Solid Light Red (light), Dark Red (dark)",
-    WindowBackdrop.Solid(lightBlue, darkBlue) to "Solid Light Blue (light), Dark Blue (dark)",
-    WindowBackdrop.Acrylic(Color.Magenta.copy(alpha = .89f)) to "Acrylic Magenta",
-    WindowBackdrop.Acrylic(Color.Cyan.copy(alpha = .1f)) to "Acrylic Cyan",
+    WindowBackdrop.Acrylic(Color.Magenta.copy(alpha = .20f)) to "Acrylic Tinted (API unstable)",
+    WindowBackdrop.Acrylic() to "Acrylic",
     WindowBackdrop.Mica to "Mica",
-    WindowBackdrop.Tabbed to "Tabbed",
+    WindowBackdrop.MicaTabbed to "Tabbed",
 )

@@ -12,6 +12,14 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 
+interface NativeLookWindowScope : FrameWindowScope {
+    val hasBackdropApplied: Boolean
+}
+
+private data class NativeLookWindowScopeImpl(
+    override val hasBackdropApplied: Boolean,
+    private val frameWindowScope: FrameWindowScope,
+) : NativeLookWindowScope, FrameWindowScope by frameWindowScope
 
 @Composable
 fun NativeLookWindow(
@@ -21,6 +29,7 @@ fun NativeLookWindow(
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
+    undecorated: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
     focusable: Boolean = true,
@@ -30,7 +39,7 @@ fun NativeLookWindow(
     backdropFallbacks: List<WindowBackdrop> = emptyList(),
     onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
     onKeyEvent: (KeyEvent) -> Boolean = { false },
-    content: @Composable FrameWindowScope.() -> Unit,
+    content: @Composable NativeLookWindowScope.() -> Unit,
 ) {
     key(preferredBackdropType, backdropFallbacks) {
         Window(
@@ -39,7 +48,7 @@ fun NativeLookWindow(
             visible,
             title,
             icon,
-            undecorated = false,
+            undecorated,
             transparent = false,
             resizable,
             enabled,
@@ -66,7 +75,7 @@ fun NativeLookWindow(
                 manager.isDarkTheme = isDarkTheme
             }
 
-            content()
+            content(NativeLookWindowScopeImpl(manager.hasBackdropApplied, this))
         }
     }
 }

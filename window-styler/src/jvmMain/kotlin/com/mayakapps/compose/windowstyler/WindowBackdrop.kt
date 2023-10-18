@@ -1,14 +1,26 @@
 package com.mayakapps.compose.windowstyler
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import com.mayakapps.compose.windowstyler.WindowBackdrop.Acrylic
 import com.mayakapps.compose.windowstyler.WindowBackdrop.Mica
-import com.mayakapps.compose.windowstyler.WindowBackdrop.Tabbed
+import com.mayakapps.compose.windowstyler.WindowBackdrop.MicaTabbed
+
+
+@RequiresOptIn(
+    level = RequiresOptIn.Level.WARNING,
+    message = "This API is unstable and may be removed in the future. " +
+            "Use at your own risk."
+)
+annotation class UnstableWindowBackdropApi
 
 internal interface ColorableWindowBackdrop {
     val lightColor: Color
     val darkColor: Color
 }
+
+internal fun ColorableWindowBackdrop.color(isDarkTheme: Boolean) = if (isDarkTheme) darkColor else lightColor
+internal val ColorableWindowBackdrop.hasColor get() = lightColor.isSpecified || darkColor.isSpecified
 
 internal data class ColorableWindowBackdropImpl(
     override val lightColor: Color,
@@ -22,22 +34,13 @@ internal data class ColorableWindowBackdropImpl(
  *
  * In case of unsupported effect the library tries to fall back to the nearest supported effect as follows:
  *
- * [Tabbed] -> [Mica] -> [Acrylic]
+ * [MicaTabbed] -> [Mica] -> [Acrylic]
  *
- * If [Tabbed] or [Mica] falls back to [Acrylic], high alpha is used with white or black
+ * If [MicaTabbed] or [Mica] falls back to [Acrylic], high alpha is used with white or black
  * color according to `isDarkTheme` to emulate these effects.
  */
 sealed interface WindowBackdrop {
     val WindowBackdrop.supportedSinceBuild: Int
-
-    /**
-     * This applies [lightColor] or [darkColor] as a solid background which means that any alpha component is ignored
-     * and the color is rendered as opaque.
-     */
-    data class Solid(override val lightColor: Color, override val darkColor: Color) : WindowBackdrop,
-        ColorableWindowBackdrop by ColorableWindowBackdropImpl(lightColor, darkColor) {
-        override val WindowBackdrop.supportedSinceBuild: Int get() = 0
-    }
 
     /**
      * This applies [Acrylic](https://docs.microsoft.com/en-us/windows/apps/design/style/acrylic) backdrop blended with
@@ -46,10 +49,20 @@ sealed interface WindowBackdrop {
      *
      * **Supported on Windows 10 version 1803 or greater.**
      */
-    data class Acrylic(override val lightColor: Color, override val darkColor: Color) : WindowBackdrop,
+    data class Acrylic @UnstableWindowBackdropApi constructor(
+        override val lightColor: Color,
+        override val darkColor: Color,
+    ) : WindowBackdrop,
         ColorableWindowBackdrop by ColorableWindowBackdropImpl(lightColor, darkColor) {
 
+        @UnstableWindowBackdropApi
         constructor(color: Color) : this(color, color)
+
+        @UnstableWindowBackdropApi
+        constructor(alpha: Float) : this(Color.Black.copy(alpha = alpha))
+
+        @OptIn(UnstableWindowBackdropApi::class)
+        constructor() : this(Color.Unspecified)
 
         override val WindowBackdrop.supportedSinceBuild: Int get() = 17063
     }
@@ -70,7 +83,7 @@ sealed interface WindowBackdrop {
      *
      * **Supported on Windows 11 22H2 or greater.**
      */
-    data object Tabbed : WindowBackdrop {
+    data object MicaTabbed : WindowBackdrop {
         override val WindowBackdrop.supportedSinceBuild: Int get() = 22523
     }
 }

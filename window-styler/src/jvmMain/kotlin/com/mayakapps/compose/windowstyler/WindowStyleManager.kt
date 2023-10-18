@@ -6,11 +6,10 @@ import org.jetbrains.skiko.hostOs
 import java.awt.Window
 
 internal interface WindowStyleManager {
-
     /**
      * This property should match the theming system used in your application. It's effect depends on the used backdrop
      * as follows:
-     * * If the [preferredBackdrop] is [WindowBackdrop.Mica] or [WindowBackdrop.Tabbed], it is
+     * * If the [preferredBackdrop] is [WindowBackdrop.Mica] or [WindowBackdrop.MicaTabbed], it is
      * used to manage the color of the background whether it is light or dark.
      * * Otherwise, it is used to control the color of the title bar of the window white/black.
      */
@@ -31,6 +30,11 @@ internal interface WindowStyleManager {
      */
     val frameStyle: WindowFrameStyle
 
+    /**
+     * Whether the backdrop is applied to the window.
+     */
+    val hasBackdropApplied: Boolean
+
     fun apply()
 }
 
@@ -40,6 +44,8 @@ internal class StubWindowStyleManager(
     override var frameStyle: WindowFrameStyle,
     override var backdropFallbacks: List<WindowBackdrop>,
 ) : WindowStyleManager {
+    override val hasBackdropApplied: Boolean = true
+
     override fun apply() {}
 }
 

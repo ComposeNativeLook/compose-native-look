@@ -21,6 +21,10 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi)
 
+            windows {
+                this.upgradeUuid = "1bd41766-6d17-11ee-b962-0242ac120002"
+            }
+
             packageName = "window-styler-demo"
             packageVersion = "1.0.0"
         }

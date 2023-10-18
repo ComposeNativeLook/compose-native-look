@@ -20,8 +20,12 @@ data class WindowFrameStyle(
     val borderColor: Color = Color.Unspecified,
     val titleBarColor: Color = Color.Unspecified,
     val captionColor: Color = Color.Unspecified,
-    val cornerPreference: WindowCornerPreference = WindowCornerPreference.DEFAULT
-)
+    val cornerPreference: WindowCornerPreference = WindowCornerPreference.DEFAULT,
+) {
+    companion object {
+        val Empty = WindowFrameStyle()
+    }
+}
 
 /**
  * The preferred corner shape of the window.

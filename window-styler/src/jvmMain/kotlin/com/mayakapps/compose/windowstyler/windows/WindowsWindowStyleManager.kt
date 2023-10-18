@@ -1,24 +1,48 @@
 package com.mayakapps.compose.windowstyler.windows
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.isSpecified
-import com.mayakapps.compose.windowstyler.ColorableWindowBackdrop
 import com.mayakapps.compose.windowstyler.WindowBackdrop
 import com.mayakapps.compose.windowstyler.WindowBackdrop.Mica.supportedSinceBuild
-import com.mayakapps.compose.windowstyler.WindowCornerPreference
 import com.mayakapps.compose.windowstyler.WindowFrameStyle
 import com.mayakapps.compose.windowstyler.WindowStyleManager
+import com.mayakapps.compose.windowstyler.color
 import com.mayakapps.compose.windowstyler.hackContentPane
+import com.mayakapps.compose.windowstyler.hasColor
 import com.mayakapps.compose.windowstyler.isTransparent
-import com.mayakapps.compose.windowstyler.isUndecorated
 import com.mayakapps.compose.windowstyler.setComposeLayerTransparency
 import com.mayakapps.compose.windowstyler.windows.jna.Dwm
 import com.mayakapps.compose.windowstyler.windows.jna.enums.AccentFlag
+import com.mayakapps.compose.windowstyler.windows.jna.enums.AccentState
 import com.mayakapps.compose.windowstyler.windows.jna.enums.DwmWindowAttribute
 import com.sun.jna.platform.win32.WinDef.HWND
 import java.awt.Window
 import javax.swing.SwingUtilities
 import kotlin.properties.Delegates
+
+
+private const val WIN10_BUILD_17763_OCT18 = 17763
+private const val WIN10_BUILD_18985 = 18985
+private const val WIN10_BUILD_19033_20H1 = 19033
+private const val WIN11_BUILD_22000_21H2 = 22000
+private const val WIN11_BUILD_22523 = 22523
+
+private fun applyAcrylicAccentPolicy(
+    backdrop: WindowBackdrop.Acrylic,
+    isDarkTheme: Boolean,
+    backdropApis: WindowsBackdropApis,
+) {
+    val color = backdrop.color(isDarkTheme).takeIf { it.isSpecified }?.toAbgr() ?: 0
+
+    backdropApis.setAccentPolicy(
+        accentState = AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND,
+        accentFlags = setOf(AccentFlag.NONE),
+        color = color,
+    )
+}
 
 /**
  * Windows implementation of [WindowStyleManager]. It is not recommended to use this class directly.
@@ -27,27 +51,32 @@ import kotlin.properties.Delegates
  */
 class WindowsWindowStyleManager internal constructor(
     private val window: Window,
-    isDarkTheme: Boolean = false,
+    isDarkTheme: Boolean,
     override val preferredBackdrop: WindowBackdrop,
-    frameStyle: WindowFrameStyle = WindowFrameStyle(),
-    backdropFallbacks: List<WindowBackdrop>,
+    frameStyle: WindowFrameStyle,
+    override val backdropFallbacks: List<WindowBackdrop>,
 ) : WindowStyleManager {
+    private var isApplied = false
     private val hwnd: HWND = window.hwnd
-    private val isUndecorated = window.isUndecorated
 
-    private val backdropApis = WindowsBackdropApis(hwnd)
-
-    override val backdropFallbacks: List<WindowBackdrop> by Delegates.observable(backdropFallbacks) { _, oldValue, newValue ->
-        if (newValue != oldValue) {
-            updateBackdrop()
-        }
-    }
+    private val backdropApis = WindowsBackdropApis.install(hwnd)
 
     override var isDarkTheme: Boolean by Delegates.observable(isDarkTheme) { _, oldValue, newValue ->
+        if (!isApplied) return@observable
+
         if (newValue != oldValue) {
             updateTheme()
         }
     }
+
+    override var frameStyle: WindowFrameStyle by Delegates.observable(frameStyle) { _, oldValue, newValue ->
+        if (!isApplied) return@observable
+
+        if (oldValue != newValue) {
+            updateFrameStyle()
+        }
+    }
+    override var hasBackdropApplied: Boolean by mutableStateOf(false)
 
     private val _backdrop: WindowBackdrop?
         get() = (listOf(preferredBackdrop) + backdropFallbacks).firstOrNull {
@@ -66,36 +95,24 @@ class WindowsWindowStyleManager internal constructor(
                 window.hackContentPane()
             }
 
+            updateFrameStyle()
             updateTheme()
             updateBackdrop()
-            updateFrameStyle()
+
+            isApplied = true
         }
     }
 
-    override var frameStyle: WindowFrameStyle = frameStyle
-        set(value) {
-            if (field != value) {
-                val oldValue = field
-                field = value
-                updateFrameStyle(oldValue)
-            }
+    private fun updateTheme() {
+        val attribute = when {
+            windowsBuild >= WIN10_BUILD_18985 -> DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE
+            windowsBuild >= WIN10_BUILD_17763_OCT18 -> DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1
+            else -> return
         }
 
-    private fun updateTheme() {
-        val attribute =
-            when {
-                windowsBuild < 17763 -> return
-                windowsBuild >= 18985 -> DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE
-                else -> DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1
-            }
-
-        if (windowsBuild >= 17763 && Dwm.setWindowAttribute(hwnd, attribute, isDarkTheme)) {
-            // ThemedAcrylic: Update the acrylic effect if it is themed
-            if (_backdrop is WindowBackdrop.Acrylic || _backdrop is WindowBackdrop.Solid) updateBackdrop()
-            // This is necessary for window buttons to change color correctly
-            else if (_backdrop is WindowBackdrop.Mica && !isUndecorated) {
-                backdropApis.resetWindowFrame()
-                backdropApis.createSheetOfGlassEffect()
+        if (Dwm.setWindowAttribute(hwnd, attribute, isDarkTheme)) {
+            if (windowsBuild < WIN11_BUILD_22000_21H2) { // `if`s not joined for clarity
+                if (_backdrop is WindowBackdrop.Acrylic) updateBackdrop()
             }
         }
     }
@@ -103,63 +120,42 @@ class WindowsWindowStyleManager internal constructor(
     private fun updateBackdrop() {
         val backdrop = _backdrop ?: return
 
-        // This is done to make sure that the window has become visible
-        // If the window isn't shown yet, and we try to apply Default, Solid, Aero,
-        // or Acrylic, the effect will be applied to the title bar background
-        // leaving the caption with awkward background box.
-        // Unfortunately, even with this method, mica has this background box.
-        SwingUtilities.invokeLater {
-            // Only on later Windows 11 versions and if effect is WindowEffect.mica,
-            // WindowEffect.acrylic or WindowEffect.tabbed, otherwise fallback to old
-            // approach.
-            if (
-                windowsBuild >= 22523 &&
-                (backdrop is WindowBackdrop.Acrylic || backdrop is WindowBackdrop.Mica || _backdrop is WindowBackdrop.Tabbed)
-            ) {
+        hasBackdropApplied = when {
+            windowsBuild >= WIN11_BUILD_22523 -> {
                 backdropApis.setSystemBackdrop(backdrop.toDwmSystemBackdrop())
-            } else {
+
+                if (backdrop is WindowBackdrop.Acrylic && backdrop.hasColor) {
+                    applyAcrylicAccentPolicy(backdrop, isDarkTheme, backdropApis)
+                }
+
+                true
+            }
+
+            windowsBuild >= WIN11_BUILD_22000_21H2 -> {
                 if (backdrop is WindowBackdrop.Mica) {
                     backdropApis.setMicaEffectEnabled(true)
-                } else {
-                    val color = when (backdrop) {
-                        // As the transparency hack is irreversible, the default effect is applied by solid backdrop.
-                        // The default color is white or black depending on the theme
-                        is ColorableWindowBackdrop -> (if (isDarkTheme) backdrop.darkColor else backdrop.lightColor).toAbgr()
-                        else -> 0x7FFFFFFF
-                    }
+                    true
+                } else false
+            }
 
-                    val accentState = backdrop.toAccentState()
-                    backdropApis.setAccentPolicy(
-                        accentState = accentState,
-                        accentFlags = setOf(AccentFlag.DRAW_ALL_BORDERS),
-                        color = color,
-                    )
-                }
+            else -> {
+                if (backdrop is WindowBackdrop.Acrylic) {
+                    applyAcrylicAccentPolicy(backdrop, isDarkTheme, backdropApis)
+                    true
+                } else false
             }
         }
     }
 
-    /*
-     * Frame Style
-     */
-
-    private fun updateFrameStyle(oldStyle: WindowFrameStyle? = null) {
-        if (windowsBuild >= 22000) {
-            if ((oldStyle?.cornerPreference ?: WindowCornerPreference.DEFAULT) != frameStyle.cornerPreference) {
-                Dwm.setWindowCornerPreference(hwnd, frameStyle.cornerPreference.toDwmWindowCornerPreference())
-            }
-
-            if (frameStyle.borderColor.isSpecified && oldStyle?.borderColor != frameStyle.borderColor) {
-                Dwm.setWindowAttribute(hwnd, DwmWindowAttribute.DWMWA_BORDER_COLOR, frameStyle.borderColor.toBgr())
-            }
-
-            if (frameStyle.titleBarColor.isSpecified && oldStyle?.titleBarColor != frameStyle.titleBarColor) {
-                Dwm.setWindowAttribute(hwnd, DwmWindowAttribute.DWMWA_CAPTION_COLOR, frameStyle.titleBarColor.toBgr())
-            }
-
-            if (frameStyle.captionColor.isSpecified && oldStyle?.captionColor != frameStyle.captionColor) {
-                Dwm.setWindowAttribute(hwnd, DwmWindowAttribute.DWMWA_TEXT_COLOR, frameStyle.captionColor.toBgr())
-            }
+    private fun updateFrameStyle() {
+        if (windowsBuild < WIN11_BUILD_22000_21H2) {
+            // Unsupported
+            return
         }
+
+        Dwm.setWindowCornerPreference(hwnd, frameStyle.cornerPreference.toDwmWindowCornerPreference())
+        Dwm.setWindowAttribute(hwnd, DwmWindowAttribute.DWMWA_BORDER_COLOR, frameStyle.borderColor.toBgr())
+        Dwm.setWindowAttribute(hwnd, DwmWindowAttribute.DWMWA_CAPTION_COLOR, frameStyle.titleBarColor.toBgr())
+        Dwm.setWindowAttribute(hwnd, DwmWindowAttribute.DWMWA_TEXT_COLOR, frameStyle.captionColor.toBgr())
     }
 }

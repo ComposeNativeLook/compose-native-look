@@ -28,15 +28,7 @@ internal fun WindowBackdrop.toDwmSystemBackdrop(): DwmSystemBackdrop =
     when (this) {
         is WindowBackdrop.Mica -> DwmSystemBackdrop.DWMSBT_MAINWINDOW
         is WindowBackdrop.Acrylic -> DwmSystemBackdrop.DWMSBT_TRANSIENTWINDOW
-        is WindowBackdrop.Tabbed -> DwmSystemBackdrop.DWMSBT_TABBEDWINDOW
-        else -> DwmSystemBackdrop.DWMSBT_DISABLE
-    }
-
-internal fun WindowBackdrop.toAccentState(): AccentState =
-    when (this) {
-        is WindowBackdrop.Solid -> AccentState.ACCENT_ENABLE_GRADIENT
-        is WindowBackdrop.Acrylic -> AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND
-        else -> AccentState.ACCENT_DISABLED
+        is WindowBackdrop.MicaTabbed -> DwmSystemBackdrop.DWMSBT_TABBEDWINDOW
     }
 
 internal fun WindowCornerPreference.toDwmWindowCornerPreference(): DwmWindowCornerPreference =

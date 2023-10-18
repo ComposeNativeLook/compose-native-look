@@ -2,8 +2,13 @@ package com.mayakapps.compose.windowstyler.windows
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.colorspace.connect
+import androidx.compose.ui.graphics.isUnspecified
+
+const val DWMWA_COLOR_DEFAULT = -1
 
 internal fun Color.toBgr(): Int {
+    if (isUnspecified) return DWMWA_COLOR_DEFAULT
+
     val colorSpace = colorSpace
     val color = floatArrayOf(red, green, blue)
 
