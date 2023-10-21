@@ -1,7 +1,6 @@
 @file:OptIn(UnstableWindowBackdropApi::class)
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
@@ -27,6 +25,18 @@ import androidx.compose.ui.window.application
 import com.mayakapps.compose.windowstyler.NativeLookWindow
 import com.mayakapps.compose.windowstyler.UnstableWindowBackdropApi
 import com.mayakapps.compose.windowstyler.WindowBackdrop
+import com.mayakapps.compose.windowstyler.isSystemInDarkTheme
+
+fun backdropOptions(isDarkTheme: Boolean) = listOf(
+    WindowBackdrop.Solid(isDarkTheme) to "Solid (Win 10 fallback)",
+    WindowBackdrop.AcrylicWithTint(
+        Color.Magenta.copy(alpha = .20f),
+        isDarkTheme
+    ) to "Tinted Acrylic (API unstable)",
+    WindowBackdrop.Acrylic(isDarkTheme) to "Acrylic",
+    WindowBackdrop.Mica(isDarkTheme) to "Mica",
+    WindowBackdrop.MicaTabbed(isDarkTheme) to "Tabbed",
+)
 
 @Composable
 @Preview
@@ -45,49 +55,34 @@ fun App(
     ) {
         RadioGroup("Theme", themeOptions, isDarkTheme, onThemeChange)
         Spacer(Modifier.height(50.dp))
-        RadioGroup("Backdrop Type", backdropOptions, backdropType, onBackdropChange)
+        RadioGroup("Backdrop Type", backdropOptions(isDarkTheme), backdropType, onBackdropChange)
     }
 }
 
 fun main() = application {
     val isSystemInDarkTheme = isSystemInDarkTheme()
-    var isDarkTheme by remember { mutableStateOf(isSystemInDarkTheme) }
-    var preferredBackdropType by remember { mutableStateOf<WindowBackdrop>(WindowBackdrop.Mica) }
+    var isDarkTheme by remember(isSystemInDarkTheme) { mutableStateOf(isSystemInDarkTheme) }
+    var preferredBackdropType by remember { mutableStateOf<WindowBackdrop>(WindowBackdrop.Mica(isDarkTheme)) }
 
     NativeLookWindow(
         onCloseRequest = ::exitApplication,
-        title = "Compose Window Styler Demo",
         preferredBackdropType = preferredBackdropType,
-        isDarkTheme = isDarkTheme,
+        title = "Compose Window Styler Demo",
     ) {
-
         MaterialTheme(colors = if (isDarkTheme) darkColors() else lightColors()) {
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colors.onBackground) {
-                val app = @Composable {
-                    App(
-                        isDarkTheme = isDarkTheme,
-                        onThemeChange = { isDarkTheme = it },
-                        backdropType = preferredBackdropType,
-                        onBackdropChange = { preferredBackdropType = it },
-                    )
-                }
-                if (hasBackdropApplied) {
-                    app()
-                } else {
-                    Surface {
-                        app()
-                    }
-                }
+                App(
+                    isDarkTheme = isDarkTheme,
+                    onThemeChange = {
+                        isDarkTheme = it
+                        preferredBackdropType = preferredBackdropType.withTheme(isDarkTheme = it)
+                    },
+                    backdropType = preferredBackdropType,
+                    onBackdropChange = { preferredBackdropType = it },
+                )
             }
         }
     }
 }
 
 val themeOptions = listOf(false to "Light", true to "Dark")
-
-val backdropOptions = listOf(
-    WindowBackdrop.Acrylic(Color.Magenta.copy(alpha = .20f)) to "Acrylic Tinted (API unstable)",
-    WindowBackdrop.Acrylic() to "Acrylic",
-    WindowBackdrop.Mica to "Mica",
-    WindowBackdrop.MicaTabbed to "Tabbed",
-)

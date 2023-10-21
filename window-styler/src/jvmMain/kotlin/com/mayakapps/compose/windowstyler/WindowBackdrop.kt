@@ -2,9 +2,19 @@ package com.mayakapps.compose.windowstyler
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
-import com.mayakapps.compose.windowstyler.WindowBackdrop.Acrylic
-import com.mayakapps.compose.windowstyler.WindowBackdrop.Mica
-import com.mayakapps.compose.windowstyler.WindowBackdrop.MicaTabbed
+import com.mayakapps.compose.windowstyler.windows.WIN10_BUILD_17763_OCT18
+import com.mayakapps.compose.windowstyler.windows.WIN10_BUILD_18985
+import com.mayakapps.compose.windowstyler.windows.WIN11_BUILD_22000_21H2
+import com.mayakapps.compose.windowstyler.windows.WIN11_BUILD_22523
+import com.mayakapps.compose.windowstyler.windows.WindowsBackdropApis
+import com.mayakapps.compose.windowstyler.windows.jna.Dwm
+import com.mayakapps.compose.windowstyler.windows.jna.enums.AccentFlag
+import com.mayakapps.compose.windowstyler.windows.jna.enums.AccentState
+import com.mayakapps.compose.windowstyler.windows.jna.enums.DwmWindowAttribute
+import com.mayakapps.compose.windowstyler.windows.toAbgr
+import com.mayakapps.compose.windowstyler.windows.toDwmSystemBackdrop
+import com.mayakapps.compose.windowstyler.windows.windowsBuild
+import com.sun.jna.platform.win32.WinDef.HWND
 
 
 @RequiresOptIn(
@@ -14,57 +24,88 @@ import com.mayakapps.compose.windowstyler.WindowBackdrop.MicaTabbed
 )
 annotation class UnstableWindowBackdropApi
 
-internal interface ColorableWindowBackdrop {
-    val lightColor: Color
-    val darkColor: Color
+internal fun applyAcrylicAccentPolicy(
+    color: Color,
+    backdropApis: WindowsBackdropApis,
+) {
+    val colorOrBlack = color.takeIf { it.isSpecified }?.toAbgr() ?: 0 // TODO: check if this is correct
+
+    backdropApis.setAccentPolicy(
+        accentState = AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND,
+        accentFlags = setOf(AccentFlag.DRAW_ALL_BORDERS),
+        color = colorOrBlack,
+    )
 }
-
-internal fun ColorableWindowBackdrop.color(isDarkTheme: Boolean) = if (isDarkTheme) darkColor else lightColor
-internal val ColorableWindowBackdrop.hasColor get() = lightColor.isSpecified || darkColor.isSpecified
-
-internal data class ColorableWindowBackdropImpl(
-    override val lightColor: Color,
-    override val darkColor: Color,
-) : ColorableWindowBackdrop
 
 /**
  * The type of the window backdrop/background.
- *
- * **Fallback Strategy**
- *
- * In case of unsupported effect the library tries to fall back to the nearest supported effect as follows:
- *
- * [MicaTabbed] -> [Mica] -> [Acrylic]
- *
- * If [MicaTabbed] or [Mica] falls back to [Acrylic], high alpha is used with white or black
- * color according to `isDarkTheme` to emulate these effects.
  */
-sealed interface WindowBackdrop {
-    val WindowBackdrop.supportedSinceBuild: Int
+sealed class WindowBackdrop(open val isDarkTheme: Boolean) {
+    abstract val supportedSinceBuild: Int
+
+    protected abstract val fallsBackTo: WindowBackdrop
+
+    fun withTheme(isDarkTheme: Boolean): WindowBackdrop =
+        when (this) {
+            is MicaTabbed -> copy(isDarkTheme = isDarkTheme)
+            is Mica -> copy(isDarkTheme = isDarkTheme)
+            is Acrylic -> copy(isDarkTheme = isDarkTheme)
+            is AcrylicWithTint -> copy(isDarkTheme = isDarkTheme)
+            is Solid -> copy(isDarkTheme = isDarkTheme)
+            None -> this
+        }
+
+    fun fallbackIfNotSupported(): WindowBackdrop =
+        if (windowsBuild >= supportedSinceBuild) this else fallsBackTo.fallbackIfNotSupported()
+
+    internal fun updateTheme(hwnd: HWND) {
+        val attribute = when {
+            windowsBuild >= WIN10_BUILD_18985 -> DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE
+            windowsBuild >= WIN10_BUILD_17763_OCT18 -> DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1
+            else -> return
+        }
+
+        if (Dwm.setWindowAttribute(hwnd, attribute, isDarkTheme)) {
+//            if (windowsBuild < WIN11_BUILD_22000_21H2 && this is Acrylic) {
+//                apply(windowBackdropApis)
+//            }
+        }
+    }
+
+    internal open fun applyDiff(oldBackdrop: WindowBackdrop?, hwnd: HWND, windowsBackdropApis: WindowsBackdropApis) {
+        when {
+            oldBackdrop == this -> {
+                return
+            }
+
+            oldBackdrop?.javaClass != this.javaClass -> {
+                apply(windowsBackdropApis)
+                updateTheme(hwnd)
+            }
+
+            else -> updateTheme(hwnd)
+        }
+    }
+
+    internal abstract fun apply(windowsBackdropApis: WindowsBackdropApis)
 
     /**
-     * This applies [Acrylic](https://docs.microsoft.com/en-us/windows/apps/design/style/acrylic) backdrop blended with
-     * the supplied [lightColor] or [darkColor]. If the backdrop is rendered opaque, double check that the colours
-     * have reasonable alpha value.
+     * This applies Tabbed backdrop themed according to `isDarkTheme` value. This is a backdrop that is similar to
+     * [Mica] but targeted at tabbed windows.
      *
-     * **Supported on Windows 10 version 1803 or greater.**
+     * **Supported on Windows 11 22H2 or greater.**
      */
-    data class Acrylic @UnstableWindowBackdropApi constructor(
-        override val lightColor: Color,
-        override val darkColor: Color,
-    ) : WindowBackdrop,
-        ColorableWindowBackdrop by ColorableWindowBackdropImpl(lightColor, darkColor) {
+    data class MicaTabbed(
+        override val isDarkTheme: Boolean,
+    ) : WindowBackdrop(isDarkTheme) {
+        override val supportedSinceBuild: Int get() = WIN11_BUILD_22523
 
-        @UnstableWindowBackdropApi
-        constructor(color: Color) : this(color, color)
+        override val fallsBackTo: WindowBackdrop
+            get() = Mica(isDarkTheme)
 
-        @UnstableWindowBackdropApi
-        constructor(alpha: Float) : this(Color.Black.copy(alpha = alpha))
-
-        @OptIn(UnstableWindowBackdropApi::class)
-        constructor() : this(Color.Unspecified)
-
-        override val WindowBackdrop.supportedSinceBuild: Int get() = 17063
+        override fun apply(windowsBackdropApis: WindowsBackdropApis) {
+            windowsBackdropApis.setSystemBackdrop(this.toDwmSystemBackdrop())
+        }
     }
 
     /**
@@ -73,17 +114,104 @@ sealed interface WindowBackdrop {
      *
      * **Supported on Windows 11 21H2 or greater.**
      */
-    data object Mica : WindowBackdrop {
-        override val WindowBackdrop.supportedSinceBuild: Int get() = 22000
+    data class Mica(override val isDarkTheme: Boolean) : WindowBackdrop(isDarkTheme) {
+        override val supportedSinceBuild: Int get() = WIN11_BUILD_22000_21H2
+        override val fallsBackTo: WindowBackdrop
+            get() = Solid(isDarkTheme)
+
+        override fun apply(windowsBackdropApis: WindowsBackdropApis) {
+            when {
+                windowsBuild >= WIN11_BUILD_22523 -> {
+                    windowsBackdropApis.setSystemBackdrop(this.toDwmSystemBackdrop())
+                }
+
+                windowsBuild >= WIN11_BUILD_22000_21H2 -> {
+                    windowsBackdropApis.setMicaEffectEnabled(true)
+                }
+            }
+        }
     }
 
-    /**
-     * This applies Tabbed backdrop themed according to `isDarkTheme` value. This is a backdrop that is similar to
-     * [Mica] but targeted at tabbed windows.
-     *
-     * **Supported on Windows 11 22H2 or greater.**
-     */
-    data object MicaTabbed : WindowBackdrop {
-        override val WindowBackdrop.supportedSinceBuild: Int get() = 22523
+    data class Acrylic(
+        override val isDarkTheme: Boolean,
+    ) : WindowBackdrop(isDarkTheme) {
+
+        override val supportedSinceBuild: Int get() = WIN11_BUILD_22000_21H2
+
+        override fun apply(windowsBackdropApis: WindowsBackdropApis) {
+            when {
+                windowsBuild >= WIN11_BUILD_22523 -> {
+                    windowsBackdropApis.setSystemBackdrop(this.toDwmSystemBackdrop())
+                }
+
+                windowsBuild >= WIN11_BUILD_22000_21H2 -> {
+                    applyAcrylicAccentPolicy(Color.Unspecified, windowsBackdropApis)
+                }
+            }
+        }
+
+        override val fallsBackTo: WindowBackdrop
+            get() = Solid(isDarkTheme)
+    }
+
+    @UnstableWindowBackdropApi
+    data class AcrylicWithTint @UnstableWindowBackdropApi constructor(
+        val lightColor: Color,
+        val darkColor: Color,
+        override val isDarkTheme: Boolean,
+    ) : WindowBackdrop(isDarkTheme) {
+
+        override val supportedSinceBuild: Int get() = WIN11_BUILD_22000_21H2
+
+        constructor(color: Color, isDarkTheme: Boolean) : this(color, color, isDarkTheme)
+
+        private val color: Color get() = if (isDarkTheme) darkColor else lightColor
+
+        override fun applyDiff(oldBackdrop: WindowBackdrop?, hwnd: HWND, windowsBackdropApis: WindowsBackdropApis) {
+            if (oldBackdrop is AcrylicWithTint && oldBackdrop.color.isSpecified != color.isSpecified) {
+                apply(windowsBackdropApis)
+                updateTheme(hwnd)
+                return
+            }
+
+            super.applyDiff(oldBackdrop, hwnd, windowsBackdropApis)
+        }
+
+        override fun apply(windowsBackdropApis: WindowsBackdropApis) {
+            if (windowsBuild >= WIN11_BUILD_22523) {
+                windowsBackdropApis.setSystemBackdrop(this.toDwmSystemBackdrop())
+            }
+
+            if (windowsBuild >= WIN11_BUILD_22000_21H2) {
+                applyAcrylicAccentPolicy(color, windowsBackdropApis)
+            }
+        }
+
+        override val fallsBackTo: WindowBackdrop
+            get() = Solid(isDarkTheme)
+    }
+
+    data class Solid(override val isDarkTheme: Boolean) : WindowBackdrop(isDarkTheme) {
+        override val supportedSinceBuild: Int get() = 0
+
+        val color: Color
+            get() = if (isDarkTheme) Color(32, 32, 32) else Color.White
+
+        override val fallsBackTo: WindowBackdrop
+            get() = this // no fallbacks as always supported
+
+        override fun apply(windowsBackdropApis: WindowsBackdropApis) {
+            // No need to apply
+        }
+    }
+
+    data object None : WindowBackdrop(false) {
+        override val supportedSinceBuild: Int get() = 0
+        override val fallsBackTo: WindowBackdrop
+            get() = this // no fallbacks as always supported
+
+        override fun apply(windowsBackdropApis: WindowsBackdropApis) {
+            // No need to apply
+        }
     }
 }

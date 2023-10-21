@@ -47,6 +47,6 @@ internal class WindowsBackdropApis private constructor(private val hwnd: WinDef.
     }
 
     companion object {
-        fun install(hwnd: WinDef.HWND): WindowsBackdropApis = WindowsBackdropApis(hwnd)
+        internal fun install(hwnd: WinDef.HWND): WindowsBackdropApis = WindowsBackdropApis(hwnd)
     }
 }

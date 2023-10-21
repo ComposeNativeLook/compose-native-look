@@ -11,6 +11,8 @@ import com.sun.jna.win32.StdCallLibrary
 import com.sun.jna.win32.W32APIOptions
 
 internal object User32 {
+    private const val COLOR_WINDOW = 5
+
     fun setAccentPolicy(
         hwnd: WinDef.HWND,
         accentState: AccentState = AccentState.ACCENT_DISABLED,
@@ -29,9 +31,11 @@ internal object User32 {
         return isSuccess
     }
 
+    fun getSystemWindowColor(): Int = User32Impl.GetSysColor(COLOR_WINDOW)
+
     private fun setWindowCompositionAttribute(
         hwnd: WinDef.HWND,
-        attributeData: WindowCompositionAttributeData
+        attributeData: WindowCompositionAttributeData,
     ): Boolean {
         Native.setLastError(0)
 
@@ -47,4 +51,6 @@ private object User32Impl : User32Api by Native.load("user32", User32Api::class.
 @Suppress("FunctionName")
 private interface User32Api : StdCallLibrary {
     fun SetWindowCompositionAttribute(hwnd: WinDef.HWND, attributeData: WindowCompositionAttributeData): Boolean
+
+    fun GetSysColor(index: Int): Int
 }

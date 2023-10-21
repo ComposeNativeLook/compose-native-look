@@ -4,7 +4,6 @@ import androidx.compose.ui.awt.ComposeWindow
 import com.mayakapps.compose.windowstyler.WindowBackdrop
 import com.mayakapps.compose.windowstyler.WindowCornerPreference
 import com.mayakapps.compose.windowstyler.windows.jna.Nt
-import com.mayakapps.compose.windowstyler.windows.jna.enums.AccentState
 import com.mayakapps.compose.windowstyler.windows.jna.enums.DwmSystemBackdrop
 import com.mayakapps.compose.windowstyler.windows.jna.enums.DwmWindowCornerPreference
 import com.sun.jna.Native
@@ -27,8 +26,9 @@ internal val windowsBuild by lazy {
 internal fun WindowBackdrop.toDwmSystemBackdrop(): DwmSystemBackdrop =
     when (this) {
         is WindowBackdrop.Mica -> DwmSystemBackdrop.DWMSBT_MAINWINDOW
-        is WindowBackdrop.Acrylic -> DwmSystemBackdrop.DWMSBT_TRANSIENTWINDOW
+        is WindowBackdrop.Acrylic, is WindowBackdrop.AcrylicWithTint -> DwmSystemBackdrop.DWMSBT_TRANSIENTWINDOW
         is WindowBackdrop.MicaTabbed -> DwmSystemBackdrop.DWMSBT_TABBEDWINDOW
+        is WindowBackdrop.Solid, WindowBackdrop.None -> DwmSystemBackdrop.DWMSBT_DISABLE
     }
 
 internal fun WindowCornerPreference.toDwmWindowCornerPreference(): DwmWindowCornerPreference =
