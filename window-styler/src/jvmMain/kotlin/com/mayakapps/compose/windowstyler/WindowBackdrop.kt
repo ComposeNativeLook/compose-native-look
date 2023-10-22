@@ -59,6 +59,10 @@ sealed class WindowBackdrop(open val isDarkTheme: Boolean) {
         if (windowsBuild >= supportedSinceBuild) this else fallsBackTo.fallbackIfNotSupported()
 
     internal fun updateTheme(hwnd: HWND) {
+        if (windowsBuild < WIN11_BUILD_22000_21H2) {
+            return
+        }
+
         val attribute = when {
             windowsBuild >= WIN10_BUILD_18985 -> DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE
             windowsBuild >= WIN10_BUILD_17763_OCT18 -> DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1
