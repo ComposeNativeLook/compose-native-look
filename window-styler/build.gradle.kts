@@ -21,7 +21,9 @@ kotlin {
             dependencies {
                 implementation(compose.desktop.common)
                 implementation(compose.foundation)
-                implementation("com.github.alexfacciorusso:windows-registry-ktx:main-SNAPSHOT")
+
+                implementation("com.github.alexfacciorusso:windows-registry-ktx:6a9b0b89d2")
+//                implementation("com.alexfacciorusso:windows-registry-ktx")
 
                 implementation(libs.jna)
                 implementation(libs.jna.platform)

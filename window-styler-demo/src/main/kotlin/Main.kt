@@ -13,6 +13,8 @@ import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,8 +63,12 @@ fun App(
 
 fun main() = application {
     val isSystemInDarkTheme = isSystemInDarkTheme()
-    var isDarkTheme by remember(isSystemInDarkTheme) { mutableStateOf(isSystemInDarkTheme) }
-    var preferredBackdropType by remember { mutableStateOf<WindowBackdrop>(WindowBackdrop.Mica(isDarkTheme)) }
+    var preferredBackdropType by remember { mutableStateOf<WindowBackdrop>(WindowBackdrop.Mica(isSystemInDarkTheme)) }
+    val isDarkTheme by derivedStateOf { preferredBackdropType.isDarkTheme }
+
+    LaunchedEffect(isSystemInDarkTheme) {
+        preferredBackdropType = preferredBackdropType.withTheme(isDarkTheme = isSystemInDarkTheme)
+    }
 
     NativeLookWindow(
         onCloseRequest = ::exitApplication,
@@ -74,7 +80,6 @@ fun main() = application {
                 App(
                     isDarkTheme = isDarkTheme,
                     onThemeChange = {
-                        isDarkTheme = it
                         preferredBackdropType = preferredBackdropType.withTheme(isDarkTheme = it)
                     },
                     backdropType = preferredBackdropType,

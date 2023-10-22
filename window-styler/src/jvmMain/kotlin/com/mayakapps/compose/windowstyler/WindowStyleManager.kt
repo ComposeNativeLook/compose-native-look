@@ -28,9 +28,6 @@ internal class StubWindowStyleManager(
 
 /**
  * Creates a suitable [WindowStyleManager] for [window] or a stub manager if the OS is not supported.
- *
- * The created manager is initialized by the supplied parameters.
- * See [WindowStyleManager.isDarkTheme], [WindowBackdrop], [WindowFrameStyle].
  */
 internal fun WindowStyleManager(
     window: ComposeWindow,

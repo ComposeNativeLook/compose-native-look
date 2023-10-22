@@ -31,8 +31,6 @@ internal object User32 {
         return isSuccess
     }
 
-    fun getSystemWindowColor(): Int = User32Impl.GetSysColor(COLOR_WINDOW)
-
     private fun setWindowCompositionAttribute(
         hwnd: WinDef.HWND,
         attributeData: WindowCompositionAttributeData,

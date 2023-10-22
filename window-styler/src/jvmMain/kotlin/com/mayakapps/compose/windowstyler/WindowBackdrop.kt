@@ -79,8 +79,8 @@ sealed class WindowBackdrop(open val isDarkTheme: Boolean) {
             }
 
             oldBackdrop?.javaClass != this.javaClass -> {
-                apply(windowsBackdropApis)
                 updateTheme(hwnd)
+                apply(windowsBackdropApis)
             }
 
             else -> updateTheme(hwnd)

@@ -46,19 +46,19 @@ fun NativeLookWindow(
 ) {
     key(preferredBackdropType::class) {
         Window(
-            onCloseRequest,
-            state,
-            visible,
-            title,
-            icon,
-            undecorated,
+            onCloseRequest = onCloseRequest,
+            state = state,
+            visible = visible,
+            title = title,
+            icon = icon,
+            undecorated = undecorated,
             transparent = false,
-            resizable,
-            enabled,
-            focusable,
-            alwaysOnTop,
-            onPreviewKeyEvent,
-            onKeyEvent,
+            resizable = resizable,
+            enabled = enabled,
+            focusable = focusable,
+            alwaysOnTop = alwaysOnTop,
+            onPreviewKeyEvent = onPreviewKeyEvent,
+            onKeyEvent = onKeyEvent,
         ) {
             val manager = remember {
                 WindowStyleManager(
