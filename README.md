@@ -97,14 +97,14 @@ backdrop as follows:
   background whether it is light or dark.
 * Otherwise, it is used to control the color of the title bar of the window white/black.
 
-### Backdrop types (e.g. `preferredBackdropType` or `backdropFallbacks`)
+### Backdrop types (e.g. `preferredBackdropType`)
 
-* `WindowBackdrop.Solid(val color: Color)`: This applies the color as a solid background which means that any alpha
-  component is ignored and the color is rendered as opaque.
-* `WindowBackdrop.Acrylic(val color: Color)`: This
-  applies [Acrylic](https://docs.microsoft.com/en-us/windows/apps/design/style/acrylic) backdrop blended with the
-  supplied color. If the backdrop is rendered opaque, double check that `color` has a reasonable alpha value. Supported
-  on Windows 10 version 1803 or greater.
+* `WindowBackdrop.Solid`: This applies a white colour in case of light theme and dark grey (Windows 10 default) colour 
+  in case of dark theme.
+* `WindowBackdrop.Acrylic`: This
+  applies [Acrylic](https://docs.microsoft.com/en-us/windows/apps/design/style/acrylic) backdrop . If the backdrop is 
+  rendered opaque, double check that `color` has a reasonable alpha value. Supported on 
+  Windows 11.
 * `WindowBackdrop.Mica`: This applies [Mica](https://docs.microsoft.com/en-us/windows/apps/design/style/mica) backdrop
   themed according to `isDarkTheme` value. Supported on Windows 11 21H2 or greater.
 * `WindowBackdrop.Tabbed`: This applies Tabbed backdrop themed according to `isDarkTheme` value. This is a backdrop that
@@ -112,8 +112,7 @@ backdrop as follows:
 
 #### Fallback Strategy
 
-In case of unsupported effect the library tries to fall back to the first supported effect of the ones given as the
-`backdropFallbacks` list (if any), or nothing if none is supported (e.g. original window management as per Compose).
+In case of unsupported effect the library tries to fall back to the Solid
 
 ### `frameStyle`
 
