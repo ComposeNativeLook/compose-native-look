@@ -20,11 +20,9 @@
 **Compose Window Styler is a library that lets you style your Compose for Desktop window to have more native and modern
 UI. This includes styling the window to use acrylic, mica ...etc.**
 
----
+## Video
 
-![Demo Screenshot](res/demo_preview.webp)
-
----
+![Demo Screenshot](res/demo_preview.gif)
 
 ## Setup (Gradle)
 
