@@ -1,24 +1,11 @@
-<br />
+# Compose Native Look
 
-<div align="center">
-    <img src="res/logo.png" alt="Logo"/>
-</div>
+Compose Native Look is a library that lets you style your Compose for Desktop window to have more native and modern
+UI. This includes styling the window to use native styles like acrylic and mica, with fall backs in place when the OS
+does not support the current effect.
 
-<h1 align="center" style="margin-top: 0;">Compose Window Styler</h1>
-
-<div align="center">
-
-![Compose Window Styler](https://img.shields.io/badge/Compose-Window%20Styler-blue?logo=jetpackcompose)
-[![GitHub stars](https://img.shields.io/github/stars/MayakaApps/ComposeWindowStyler)](https://github.com/MayakaApps/ComposeWindowStyler/stargazers)
-[![GitHub license](https://img.shields.io/github/license/MayakaApps/ComposeWindowStyler)](https://github.com/MayakaApps/ComposeWindowStyler/blob/main/LICENSE)
-![Maven Central](https://img.shields.io/maven-central/v/com.mayakapps.compose/window-styler)
-![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.mayakapps.compose/window-styler?server=https%3A%2F%2Fs01.oss.sonatype.org)
-[![Twitter](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2FMayakaApps%2FComposeWindowStyler)](https://twitter.com/intent/tweet?text=Compose%20Window%20Styler%20is%20a%20library%20that%20lets%20you%20style%20your%20Compose%20for%20Desktop%20window%20to%20have%20more%20native%20and%20modern%20UI.:&url=https%3A%2F%2Fgithub.com%2FMayakaApps%2FComposeWindowStyler)
-
-</div>
-
-**Compose Window Styler is a library that lets you style your Compose for Desktop window to have more native and modern
-UI. This includes styling the window to use acrylic, mica ...etc.**
+This repo is a direct fork/rewriting of https://github.com/MayakaApps/ComposeWindowStyler, so a lots of thanks to them 
+for the inspiration and the base to start this project.
 
 ## Video
 
@@ -29,31 +16,11 @@ UI. This includes styling the window to use acrylic, mica ...etc.**
 Kotlin DSL:
 
 ```kotlin
-repositories {
-    mavenCentral()
-
-    // Add only if you're using snapshot version
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-}
-
-dependencies {
-    implementation("com.mayakapps.compose:window-styler:<version>")
-}
 ```
 
 Groovy DSL:
 
 ```gradle
-repositories {
-    mavenCentral()
-    
-    // Add only if you're using snapshot version
-    maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
-}
-
-dependencies {
-    implementation "com.mayakapps.compose:window-styler:<version>"
-}
 ```
 
 Don't forget to replace `<version>` with the latest/desired version found on the badges above.

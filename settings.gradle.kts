@@ -12,5 +12,5 @@ pluginManagement {
     }
 }
 
-rootProject.name = "ComposeWindowStyler"
-include("window-styler", "window-styler-demo")
+rootProject.name = "compose-native-look"
+include("compose-native-look", "compose-native-look-demo")
