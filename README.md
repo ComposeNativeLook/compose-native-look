@@ -30,7 +30,6 @@ Sample Code:
 fun main() = application {
     val isSystemInDarkTheme = isSystemInDarkTheme()
     var isDarkTheme by remember { mutableStateOf(isSystemInDarkTheme) }
-    var preferredBackdropType by remember { mutableStateOf<WindowBackdrop>(WindowBackdrop.Mica) }
 
     NativeLookWindow(
         onCloseRequest = ::exitApplication,
