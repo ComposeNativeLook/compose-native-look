@@ -4,7 +4,9 @@ plugins {
     kotlin("multiplatform")
     alias(libs.plugins.compose)
 
+    `maven-publish`
     alias(libs.plugins.dokka)
+
 }
 
 group = extra["GROUP"] as String
