@@ -1,5 +1,5 @@
 [versions]
-compose = "1.5.3"
+compose = "1.5.10"
 
 jna = "5.13.0"
 
